@@ -1,0 +1,245 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+    <meta http-equiv="Content-Security-Policy" content="default-src * data: gap: content: https://ssl.gstatic.com; style-src * 'unsafe-inline'; script-src * 'unsafe-inline' 'unsafe-eval'">
+    <script src="components/loader.js"></script><script src="classic.js"></script>
+    <link rel="stylesheet" href="components/loader.css">
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(to right, #f9f9f9, #e0eafc);
+            color: #333;
+            text-align: center;
+            transition: background 0.5s;
+        }
+        h1 {
+            font-size: 36px;
+            color: #4A90E2;
+            margin-bottom: 20px;
+            animation: fadeIn 2s;
+        }
+        #quizSelection, #quizContent {
+            animation: fadeIn 2s ease-in-out;
+            transition: all 0.5s;
+        }
+        #question {
+            font-size: 30px;
+            color: #4A90E2;
+            margin: 20px;
+        }
+        #timer {
+            font-size: 24px;
+            color: #ff3d00;
+            font-weight: bold;
+            margin: 10px;
+            transition: color 0.5s;
+        }
+        #answerForm input[type="text"] {
+            padding: 10px;
+            font-size: 18px;
+            border-radius: 5px;
+            border: 2px solid #4A90E2;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+        #answerForm input[type="text"]:focus {
+            border-color: #ff3d00;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 18px;
+            border-radius: 5px;
+            border: none;
+            color: white;
+            background: #4A90E2;
+            cursor: pointer;
+            transition: background 0.3s, transform 0.3s;
+        }
+        button:hover {
+            background: #357ABD;
+            transform: scale(1.05);
+        }
+        button:active {
+            background: #4A90E2;
+            transform: scale(0.95);
+        }
+        #hintButton {
+            margin-top: 15px;
+        }
+        #retryButton {
+            display: none;
+            background: #ff3d00;
+        }
+        #resultMessage {
+            font-size: 24px;
+            color: #ff3d00;
+            margin-top: 20px;
+            animation: fadeIn 2s;
+        }
+        #resultImage {
+            margin-top: 15px;
+            width: 100px;
+            animation: fadeIn 2s;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+    </style>
+    <script>
+        let no = 0;
+        let score = 0;
+        let timeLeft = 10;
+        let timerId;
+        let selectedQuiz = '';
+        let wordList = [
+            { japanese: "電話", english: "phone", hint: "It starts with 'P'" },
+            { japanese: "歴史", english: "history", hint: "It starts with 'H'" },
+            { japanese: "社会", english: "society", hint: "It starts with 'S'" },
+            { japanese: "世代", english: "generation", hint: "It starts with 'G'" },
+            { japanese: "知識", english: "knowledge", hint: "It starts with 'K'" }
+        ];
+        let kanjiList = [
+            { kanji: "日", reading: "にち", hint: "It starts with 'N'" },
+            { kanji: "人", reading: "ひと", hint: "It starts with 'H'" },
+            { kanji: "水", reading: "みず", hint: "It starts with 'M'" },
+            { kanji: "火", reading: "ひ", hint: "It starts with 'H'" },
+            { kanji: "金", reading: "かね", hint: "It starts with 'K'" }
+        ];
+
+        function startTimer() {
+            timeLeft = 20;
+            updateTimerColor();
+            document.getElementById("timer").innerHTML = "残り時間: " + timeLeft + "秒";
+            timerId = setInterval(function() {
+                timeLeft--;
+                document.getElementById("timer").innerHTML = "残り時間: " + timeLeft + "秒";
+                updateTimerColor();
+                if (timeLeft <= 0) {
+                    clearInterval(timerId);
+                    alert("時間切れです！");
+                    no++;
+                    showQuestion();
+                }
+            }, 1000);
+        }
+
+        function updateTimerColor() {
+            let timerElem = document.getElementById("timer");
+            if (timeLeft > 10) {
+                timerElem.style.color = "#4CAF50"; // 緑
+            } else if (timeLeft <= 10 && timeLeft > 5) {
+                timerElem.style.color = "#FF9800"; // オレンジ
+            } else {
+                timerElem.style.color = "#f44336"; // 赤
+            }
+        }
+
+        function shuffleQuestions() {
+            let list = selectedQuiz === 'word' ? wordList : kanjiList;
+            for (let i = list.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [list[i], list[j]] = [list[j], list[i]];
+            }
+        }
+
+        function showQuestion() {
+            clearInterval(timerId);
+            let list = selectedQuiz === 'word' ? wordList : kanjiList;
+            if(no < list.length) {
+                document.getElementById("question").innerHTML = selectedQuiz === 'word' ? list[no].japanese : list[no].kanji;
+                startTimer();
+            } else {
+                document.getElementById("question").innerHTML = score + "/" + list.length;
+                document.getElementById("answerForm").style.display = "none";
+                document.getElementById("hintButton").style.display = "none";
+                document.getElementById("timer").style.display = "none";
+                document.getElementById("retryButton").style.display = "block";
+                if(score == list.length) {
+                    document.getElementById("resultMessage").innerHTML = "全問正解！よくできました！";
+                    document.getElementById("resultImage").src = "gold.png";
+                } else if(score >= list.length * 0.6) {
+                    document.getElementById("resultMessage").innerHTML = "惜しい！あともう一歩でした！";
+                    document.getElementById("resultImage").src = "silver.png";
+                } else {
+                    document.getElementById("resultMessage").innerHTML = "もう少しがんばりましょう。";
+                    document.getElementById("resultImage").src = "bronze.png";
+                }
+            }
+        }
+        
+        function selectQuiz(quizType) {
+            selectedQuiz = quizType;
+            document.getElementById("quizSelection").style.display = "none";
+            document.getElementById("quizContent").style.display = "block";
+            restartGame();
+        }
+
+        function restartGame() {
+            no = 0;
+            score = 0;
+            document.getElementById("answerForm").style.display = "block";
+            document.getElementById("hintButton").style.display = "block";
+            document.getElementById("timer").style.display = "block";
+            document.getElementById("retryButton").style.display = "none";
+            document.getElementById("resultMessage").innerHTML = "";
+            document.getElementById("resultImage").src = "";
+            shuffleQuestions();
+            showQuestion();
+        }
+
+        function judge() {
+            let answer = document.getElementById("answer").value;
+            let list = selectedQuiz === 'word' ? wordList : kanjiList;
+            let correctAnswer = selectedQuiz === 'word' ? list[no].english : list[no].reading;
+            if(answer.toLowerCase() === correctAnswer.toLowerCase()) {
+                alert("正解です！");
+                score++;
+            } else {
+                alert("残念！不正解です。");
+            }
+            clearInterval(timerId);
+            no++;
+            showQuestion();
+            document.getElementById("answer").value = "";
+        }
+
+        function showHint() {
+            let list = selectedQuiz === 'word' ? wordList : kanjiList;
+            alert("ヒント: " + list[no].hint);
+        }
+         document.addEventListener("DOMContentLoaded", function() {
+        
+        document.getElementById("answer").addEventListener("keydown", function(event) {
+            if (event.key === "Enter") {
+                judge();
+            }
+        });
+    });
+    </script>
+</head>
+<body>
+    <h1 id="title">クイズ選択</h1>
+
+    <div id="quizSelection">
+        <button onclick="selectQuiz('word')">単語クイズ</button>
+        <button onclick="selectQuiz('kanji')">漢字クイズ</button>
+    </div>
+
+    <div id="quizContent" style="display: none;">
+        <div id="question"></div>
+        <div id="timer">残り時間: 10秒</div>
+        <div id="answerForm">
+            <input type="text" id="answer" placeholder="英単語または読みを入力">
+            <button onclick="judge()">OK</button>
+        </div>
+        <button id="hintButton" onclick="showHint()">ヒントを見る</button>
+        <p id="resultMessage"></p>
+        <img id="resultImage" src="">
+        <button id="retryButton" onclick="restartGame()">もう一度挑戦</button> 
+    </div>
+</body>
+</html>
